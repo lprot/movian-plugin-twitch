@@ -1,7 +1,7 @@
 /**
  * TwitchTV plugin for Movian Media Center
  *
- *  Copyright (C) 2015 lprot
+ *  Copyright (C) 2015-2018 lprot
  *  Based on the plugin of Fábio Ferreira (facanferff)
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -55,7 +55,7 @@
     settings.createInfo("info", logo, plugin.getDescriptor().synopsis);
 
     var videoQualities = [
-        ['0', 'Source', true], ['1', 'High'], ['2', 'Medium'], ['3', 'Low'], ['4', 'Mobile']
+        ['0', '720p30', true], ['1', 'High'], ['2', 'Medium'], ['3', 'Low'], ['4', 'Mobile']
     ];
     settings.createMultiOpt("videoQuality", "Video Quality", videoQualities, function(v) {
         service.videoQuality = v;
