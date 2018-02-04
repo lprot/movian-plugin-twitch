@@ -106,8 +106,8 @@ new page.Route(plugin.id + ":teams", function (page) {
                 title: new RichText(json.teams[i].display_name),
                 icon: json.teams[i].logo,
                 description: new RichText(coloredStr('Name: ', orange) + json.teams[i].name +
-                    coloredStr('\nCreated at: ', orange) + json.teams[i].created_at +
-                    coloredStr('\nUpdated at: ', orange) + json.teams[i].updated_at +
+                    coloredStr('\nCreated at: ', orange) + json.teams[i].created_at.replace(/[T|Z]/g, ' ') +
+                    coloredStr('\nUpdated at: ', orange) + json.teams[i].updated_at.replace(/[T|Z]/g, ' ') +
                     coloredStr('\nInfo: ', orange) + trim(json.teams[i].info)
                 )
             });
@@ -138,21 +138,23 @@ new page.Route(plugin.id + ":start", function (page) {
     var json = JSON.parse(http.request(API + '/streams/featured',header));
     page.appendItem("", "separator", {
         title: 'Featured streams (' + json.featured.length + ')'
-     });
-
+    });
     for (var i in json.featured) {
         page.appendItem(plugin.id + ':channel:' + encodeURIComponent(json.featured[i].stream.channel.name) + ':' + encodeURIComponent(json.featured[i].stream.channel.display_name), "video", {
             title: new RichText((json.featured[i].stream.game ? json.featured[i].stream.game + ' - ' : '') + json.featured[i].stream.channel.display_name + coloredStr(' (' + json.featured[i].stream.viewers + ')', orange)),
-            icon: json.featured[i].stream.preview.large,
-            description: new RichText(coloredStr('Viewing this stream: ', orange) + json.featured[i].stream.viewers +
-                coloredStr('\nStream created at: ', orange) + json.featured[i].stream.created_at +
-                coloredStr('\nChannel created at: ', orange) + json.featured[i].stream.channel.created_at +
-                coloredStr('\nChannel updated at: ', orange) + json.featured[i].stream.channel.updated_at +
+            icon: json.featured[i].image,
+            backdrops: [{url: json.featured[i].stream.preview.large}],
+            genre: new RichText((json.featured[i].stream.channel.language ? coloredStr('Language: ', orange) + json.featured[i].stream.channel.language : '') +
                 (json.featured[i].stream.channel.mature ? coloredStr('\nMature: ', orange) + json.featured[i].stream.channel.mature : '') +
-                (json.featured[i].stream.channel.language ? coloredStr('\nChannel language: ', orange) + json.featured[i].stream.channel.language : '') +
+                (json.featured[i].sponsored ? coloredStr('\nSponsored: ', orange) + json.featured[i].sponsored : '')),
+            tagline: new RichText(json.featured[i].stream.channel.status ? json.featured[i].stream.channel.status : ''),
+            description: new RichText(coloredStr('Viewing this stream: ', orange) + json.featured[i].stream.viewers +
+                coloredStr(' Created at: ', orange) + json.featured[i].stream.created_at.replace(/[T|Z]/g, ' ') +
+                coloredStr('\nChannel created at: ', orange) + json.featured[i].stream.channel.created_at.replace(/[T|Z]/g, ' ') +
+                coloredStr('\nChannel updated at: ', orange) + json.featured[i].stream.channel.updated_at.replace(/[T|Z]/g, ' ') +
                 (json.featured[i].stream.channel.views ? coloredStr('\nChannel views: ', orange) + json.featured[i].stream.channel.views : '') +
-                (json.featured[i].stream.channel.followers ? coloredStr('\nChannel followers: ', orange) + json.featured[i].stream.channel.followers : '') +
-                (json.featured[i].stream.channel.status ? coloredStr('\nChannel status: ', orange) + json.featured[i].stream.channel.status : ''))
+                (json.featured[i].stream.channel.followers ? coloredStr(' Channel followers: ', orange) + json.featured[i].stream.channel.followers : '') +
+                (json.featured[i].text ? json.featured[i].text : ''))
         });
     }
 
@@ -176,6 +178,7 @@ new page.Route(plugin.id + ":start", function (page) {
             page.appendItem(plugin.id + ":game:" + encodeURIComponent(json.top[i].game.name), "video", {
                 title: new RichText(json.top[i].game.name + coloredStr(' (' + json.top[i].viewers + ')', orange)),
                 icon: json.top[i].game.box.large,
+                backdrops: [{url: json.top[i].game.logo.large}],
                 description: new RichText(coloredStr('Viewers: ', orange) + json.top[i].viewers +
                     coloredStr('\nChannels: ', orange) + json.top[i].channels)
             });
@@ -311,7 +314,7 @@ new page.Route(plugin.id + ":past:(.*):(.*)", function (page, name, display_name
                 duration: json.videos[i].length,
                 description: new RichText(coloredStr('Views: ', orange) + json.videos[i].views +
                     (json.videos[i].game ? coloredStr('\nGame: ', orange) + json.videos[i].game : '') +
-                    (json.videos[i].recorded_at ? coloredStr('\nRecorded at: ', orange) + json.videos[i].recorded_at : '') +
+                    (json.videos[i].recorded_at ? coloredStr('\nRecorded at: ', orange) + json.videos[i].recorded_at.replace(/[T|Z]/g, ' ') : '') +
                     (json.videos[i].description ? coloredStr('\nDescription: ', orange) + json.videos[i].description : ''))
             });
             page.entries++;
@@ -344,8 +347,8 @@ new page.Route(plugin.id + ":user:(.*)", function (page, query) {
                 title: json.channels[i].display_name + (json.channels[i].game ? ' - ' + json.channels[i].game : ''),
                 icon: json.channels[i].logo,
                 description: new RichText((json.channels[i].views ? coloredStr('\nChannel views: ', orange) + json.channels[i].views : '') +
-                    coloredStr('\nCreated at: ', orange) + json.channels[i].created_at +
-                    coloredStr('\nUpdated at: ', orange) + json.channels[i].updated_at +
+                    coloredStr('\nCreated at: ', orange) + json.channels[i].created_at.replace(/[T|Z]/g, ' ') +
+                    coloredStr('\nUpdated at: ', orange) + json.channels[i].updated_at.replace(/[T|Z]/g, ' ') +
                     (json.channels[i].mature ? coloredStr('\nMature: ', orange) + json.channels[i].mature : '') +
                     (json.channels[i].language ? coloredStr('\nLanguage: ', orange) + json.channels[i].language : '') +
                     (json.channels[i].followers ? coloredStr('\nFollowers: ', orange) + json.channels[i].followers : '') +
@@ -415,22 +418,26 @@ new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_n
 
     var tryToSearch = true, first = true;
     var json = JSON.parse(http.request(API + '/streams/' + name, header));
+    page.metadata.background = json.stream.channel.video_banner;
+    page.metadata.backgroundAlpha = 0.3;
+    page.metadata.icon = json.stream.channel.logo;
     if (json.stream) {
         page.appendItem("", "separator", {
             title: 'Stream'
         });
         page.appendItem(plugin.id + ":play:" + encodeURIComponent(json.stream.channel.name), "video", {
             title: new RichText((json.stream.game ? json.stream.game + ' - ' : '') + json.stream.channel.display_name + coloredStr(' (' + json.stream.viewers + ')', orange)),
-            icon: json.stream.preview.large,
+            icon: json.stream.channel.logo,
+            backdrops: [{url: json.stream.preview.large}],
+            genre: new RichText((json.stream.channel.language ? coloredStr('Language: ', orange) + json.stream.channel.language : '') +
+                (json.stream.channel.mature ? coloredStr('\nMature: ', orange) + json.stream.channel.mature : '')),
+            tagline: json.stream.channel.status,
             description: new RichText(coloredStr('Viewing this stream: ', orange) + json.stream.viewers +
-                coloredStr('\nStream created at: ', orange) + json.stream.created_at +
-                coloredStr('\nChannel created at: ', orange) + json.stream.channel.created_at +
-                coloredStr('\nChannel updated at: ', orange) + json.stream.channel.updated_at +
-                (json.stream.channel.mature ? coloredStr('\nMature: ', orange) + json.stream.channel.mature : '') +
-                (json.stream.channel.language ? coloredStr('\nChannel language: ', orange) + json.stream.channel.language : '') +
+                coloredStr('\nStream created at: ', orange) + json.stream.created_at.replace(/[T|Z]/g, ' ') +
+                coloredStr('\nChannel created at: ', orange) + json.stream.channel.created_at.replace(/[T|Z]/g, ' ') +
+                coloredStr('\nChannel updated at: ', orange) + json.stream.channel.updated_at.replace(/[T|Z]/g, ' ') +
                 (json.stream.channel.views ? coloredStr('\nChannel views: ', orange) + json.stream.channel.views : '') +
-                (json.stream.channel.followers ? coloredStr('\nChannel followers: ', orange) + json.stream.channel.followers : '') +
-                (json.stream.channel.status ? coloredStr('\nChannel status: ', orange) + json.stream.channel.status : ''))
+                (json.stream.channel.followers ? coloredStr('\nChannel followers: ', orange) + json.stream.channel.followers : ''))
         });
         page.entries++;
     }
@@ -456,7 +463,7 @@ new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_n
                 duration: json.videos[i].length,
                 description: new RichText(coloredStr('Views: ', orange) + json.videos[i].views +
                     (json.videos[i].game ? coloredStr('\nGame: ', orange) + json.videos[i].game : '') +
-                    (json.videos[i].recorded_at ? coloredStr('\nRecorded at: ', orange) + json.videos[i].recorded_at : '') +
+                    (json.videos[i].recorded_at ? coloredStr('\nRecorded at: ', orange) + json.videos[i].recorded_at.replace(/[T|Z]/g, ' ') : '') +
                     (json.videos[i].description ? coloredStr('\nDescription: ', orange) + json.videos[i].description : ''))
                 });
             page.entries++;
@@ -476,6 +483,24 @@ new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_n
         });
 });
 
+function appendChannelItem(page, json) {
+    page.appendItem(plugin.id + ':channel:' + encodeURIComponent(json.channel.name) + ':' + encodeURIComponent(json.channel.display_name), 'video', {
+        title: new RichText(json.channel.display_name + coloredStr(' (' + json.viewers + ')', orange)),
+        icon: json.channel.logo,
+        backdrops: [{url: json.preview.large}],
+        genre: new RichText((json.channel.language ? coloredStr('Language: ', orange) + json.channel.language : '') +
+            (json.channel.mature ? coloredStr('\nMature: ', orange) + json.channel.mature : '')),
+        tagline: new RichText(json.channel.status ? json.channel.status : ''),
+        description: new RichText(coloredStr('Viewing this stream: ', orange) + json.viewers +
+            coloredStr('\nStream created at: ', orange) + json.created_at.replace(/[T|Z]/g, ' ') +
+            coloredStr('\nChannel created at: ', orange) + json.channel.created_at.replace(/[T|Z]/g, ' ') +
+            coloredStr('\nChannel updated at: ', orange) + json.channel.updated_at.replace(/[T|Z]/g, ' ') +
+            (json.channel.views ? coloredStr('\nChannel views: ', orange) + json.channel.views : '') +
+            (json.channel.followers ? coloredStr('\nChannel followers: ', orange) + json.channel.followers : ''))
+    });
+    page.entries++;
+}
+
 new page.Route(plugin.id + ":game:(.*)", function (page, name) {
     setPageHeader(page, 'Channels casting: ' + decodeURIComponent(name));
     page.loading = true;
@@ -489,22 +514,8 @@ new page.Route(plugin.id + ":game:(.*)", function (page, name) {
             page.metadata.title +=  ' (' + json._total + ')';
             first = false;
         }
-        for (var i in json.streams) {
-            page.appendItem(plugin.id + ':channel:' + encodeURIComponent(json.streams[i].channel.name) + ':' + encodeURIComponent(json.streams[i].channel.display_name), 'video', {
-                title: new RichText(json.streams[i].channel.display_name + coloredStr(' (' + json.streams[i].viewers + ')', orange)),
-                icon: json.streams[i].preview.large,
-                description: new RichText(coloredStr('Viewing this stream: ', orange) + json.streams[i].viewers +
-                    coloredStr('\nStream created at: ', orange) + json.streams[i].created_at +
-                    coloredStr('\nChannel created at: ', orange) + json.streams[i].channel.created_at +
-                    coloredStr('\nChannel updated at: ', orange) + json.streams[i].channel.updated_at +
-                    (json.streams[i].channel.mature ? coloredStr('\nMature: ', orange) + json.streams[i].channel.mature : '') +
-                    (json.streams[i].channel.language ? coloredStr('\nChannel language: ', orange) + json.streams[i].channel.language : '') +
-                    (json.streams[i].channel.views ? coloredStr('\nChannel views: ', orange) + json.streams[i].channel.views : '') +
-                    (json.streams[i].channel.followers ? coloredStr('\nChannel followers: ', orange) + json.streams[i].channel.followers : '') +
-                    (json.streams[i].channel.status ? coloredStr('\nChannel status: ', orange) + json.streams[i].channel.status : ''))
-            });
-            page.entries++;
-        }
+        for (var i in json.streams) 
+            appendChannelItem(page, json.streams[i]);
         page.loading = false;
         if (json.streams.length == 0)
             return tryToSearch = false;
@@ -534,8 +545,8 @@ page.Searcher(plugin.title + ' - Channels', logo, function (page, query) {
                 title: json.channels[i].display_name + (json.channels[i].game ? ' - ' + json.channels[i].game : ''),
                 icon: json.channels[i].logo,
                 description: new RichText((json.channels[i].views ? coloredStr('\nChannel views: ', orange) + json.channels[i].views : '') +
-                    coloredStr('\nCreated at: ', orange) + json.channels[i].created_at +
-                    coloredStr('\nUpdated at: ', orange) + json.channels[i].updated_at +
+                    coloredStr('\nCreated at: ', orange) + json.channels[i].created_at.replace(/[T|Z]/g, ' ') +
+                    coloredStr('\nUpdated at: ', orange) + json.channels[i].updated_at.replace(/[T|Z]/g, ' ') +
                     (json.channels[i].mature ? coloredStr('\nMature: ', orange) + json.channels[i].mature : '') +
                     (json.channels[i].language ? coloredStr('\nLanguage: ', orange) + json.channels[i].language : '') +
                     (json.channels[i].followers ? coloredStr('\nFollowers: ', orange) + json.channels[i].followers : '') +
@@ -567,22 +578,8 @@ page.Searcher(plugin.title + ' - Streams', logo, function (page, query) {
             page.metadata.title +=  ' (' + json._total + ')';
             first = false;
         }
-        for (var i in json.streams) {
-            page.appendItem(plugin.id + ":channel:" + encodeURIComponent(json.streams[i].channel.name) + ':' + encodeURIComponent(json.streams[i].channel.display_name), "video", {
-                title: new RichText((json.streams[i].game ? json.streams[i].game + ' - ' : '') + json.streams[i].channel.display_name + coloredStr(' (' + json.streams[i].viewers + ')', orange)),
-                icon: json.streams[i].preview.large,
-                description: new RichText(coloredStr('Viewing this stream: ', orange) + json.streams[i].viewers +
-                    coloredStr('\nStream created at: ', orange) + json.streams[i].created_at +
-                    coloredStr('\nChannel created at: ', orange) + json.streams[i].channel.created_at +
-                    coloredStr('\nChannel updated at: ', orange) + json.streams[i].channel.updated_at +
-                    (json.streams[i].channel.mature ? coloredStr('\nMature: ', orange) + json.streams[i].channel.mature : '') +
-                    (json.streams[i].channel.language ? coloredStr('\nChannel language: ', orange) + json.streams[i].channel.language : '') +
-                    (json.streams[i].channel.views ? coloredStr('\nChannel views: ', orange) + json.streams[i].channel.views : '') +
-                    (json.streams[i].channel.followers ? coloredStr('\nChannel followers: ', orange) + json.streams[i].channel.followers : '') +
-                    (json.streams[i].channel.status ? coloredStr('\nChannel status: ', orange) + json.streams[i].channel.status : ''))
-            });
-            page.entries++;
-        }
+        for (var i in json.streams) 
+            appendChannelItem(page, json.streams[i]);
         page.loading = false;
         if (json.streams.length == 0)
             return tryToSearch = false;
