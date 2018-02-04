@@ -276,7 +276,7 @@
         page.source = "videoparams:" + showtime.JSONEncode({
             title: tit,
             sources: [{
-                url: url
+                url: 'hls:' + url
             }],
             no_subtitle_scan: true
         });
@@ -318,7 +318,7 @@
         page.source = "videoparams:" + showtime.JSONEncode({
             title: name,
             sources: [{
-                url: url
+                url: 'hls:' + url
             }],
             no_subtitle_scan: true
         });
