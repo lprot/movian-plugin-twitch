@@ -66,7 +66,7 @@ service.create(plugin.title, plugin.id + ":start", 'video', true, logo);
 settings.globalSettings(plugin.id, plugin.title, logo, plugin.synopsis);
 settings.createInfo("info", logo, plugin.synopsis);
 var videoQualities = [
-    ['0', 'chunked', true], ['1', '720p60'], ['2', '720p30'], ['3', '480p30']
+    ['0', 'chunked'], ['1', '1080p30'], ['2', '720p60'], ['3', '720p30', true], ['4', '480p60'], ['5', '480p30']
 ];
 settings.createMultiOpt("videoQuality", "Video Quality", videoQualities, function(v) {
     service.videoQuality = v;
@@ -124,6 +124,9 @@ new page.Route(plugin.id + ":teams", function (page) {
 
 new page.Route(plugin.id + ":start", function (page) {
     setPageHeader(page, plugin.title + ' - Home');
+    page.options.createMultiOpt("videoQuality", "Video Quality", videoQualities, function(v) {
+        service.videoQuality = v;
+    });
     page.loading = true;
     page.appendItem(plugin.id + ":favorites", "directory", {
         title: "My Favorites"
@@ -298,6 +301,9 @@ new page.Route(plugin.id + ":play:(.*)", function (page, name) {
 
 new page.Route(plugin.id + ":past:(.*):(.*)", function (page, name, display_name) {
     setPageHeader(page, plugin.title + ' - Past broadcasts for: ' + decodeURIComponent(display_name));
+    page.options.createMultiOpt("videoQuality", "Video Quality", videoQualities, function(v) {
+        service.videoQuality = v;
+    });
     page.loading = true;
 
     var url = API + '/channels/' + name + '/videos?broadcast_type=archive';
@@ -406,6 +412,9 @@ new page.Route(plugin.id + ":favorites", function(page) {
 
 new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_name) {
     setPageHeader(page, plugin.title + ' - ' + decodeURIComponent(display_name));
+    page.options.createMultiOpt("videoQuality", "Video Quality", videoQualities, function(v) {
+        service.videoQuality = v;
+    });
     page.loading = true;
     page.options.createAction('addToFavorites', "Add '" + decodeURIComponent(display_name) + "' to My Favorites", function() {
         var entry = JSON.stringify({
