@@ -418,10 +418,10 @@ new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_n
 
     var tryToSearch = true, first = true;
     var json = JSON.parse(http.request(API + '/streams/' + name, header));
-    page.metadata.background = json.stream.channel.video_banner;
-    page.metadata.backgroundAlpha = 0.3;
-    page.metadata.icon = json.stream.channel.logo;
     if (json.stream) {
+        page.metadata.background = json.stream.channel.video_banner;
+        page.metadata.backgroundAlpha = 0.3;
+        page.metadata.icon = json.stream.channel.logo;
         page.appendItem("", "separator", {
             title: 'Stream'
         });
