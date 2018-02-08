@@ -68,8 +68,10 @@ settings.createInfo("info", logo, plugin.synopsis);
 var videoQualities = [
     ['0', 'chunked'], ['1', '1080p30'], ['2', '720p60'], ['3', '720p30', true], ['4', '480p60'], ['5', '480p30']
 ];
+var defaultvidq;
 settings.createMultiOpt("videoQuality", "Video Quality", videoQualities, function(v) {
     service.videoQuality = v;
+	defaultvidq = v;
 });
 settings.createAction("cleanFavorites", "Clean My Favorites", function() {
     store.list = "[]";
@@ -78,6 +80,10 @@ settings.createAction("cleanFavorites", "Clean My Favorites", function() {
 settings.createBool('debug', 'Enable debug logging', false, function(v) {
     service.debug = v;
 });
+settings.createBool('overridevidq', 'Override default video quality setting', false, function(v) {
+    service.overridevidq = v;
+});
+
 var store = require('movian/store').create('favorites');
 
 if (!store.list) 
@@ -125,7 +131,12 @@ new page.Route(plugin.id + ":teams", function (page) {
 new page.Route(plugin.id + ":start", function (page) {
     setPageHeader(page, plugin.title + ' - Home');
     page.options.createMultiOpt("videoQuality", "Video Quality", videoQualities, function(v) {
-        service.videoQuality = v;
+		if (service.overridevidq == true)
+		{
+			service.videoQuality = v;
+		}
+		else
+			service.videoQuality = defaultvidq;
     });
     page.loading = true;
     page.appendItem(plugin.id + ":favorites", "directory", {
@@ -302,7 +313,12 @@ new page.Route(plugin.id + ":play:(.*)", function (page, name) {
 new page.Route(plugin.id + ":past:(.*):(.*)", function (page, name, display_name) {
     setPageHeader(page, plugin.title + ' - Past broadcasts for: ' + decodeURIComponent(display_name));
     page.options.createMultiOpt("videoQuality", "Video Quality", videoQualities, function(v) {
-        service.videoQuality = v;
+	if (service.overridevidq == true)
+		{
+			service.videoQuality = v;
+		}
+		else
+			service.videoQuality = defaultvidq;
     });
     page.loading = true;
 
@@ -413,7 +429,12 @@ new page.Route(plugin.id + ":favorites", function(page) {
 new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_name) {
     setPageHeader(page, plugin.title + ' - ' + decodeURIComponent(display_name));
     page.options.createMultiOpt("videoQuality", "Video Quality", videoQualities, function(v) {
-        service.videoQuality = v;
+	if (service.overridevidq == true)
+		{
+			service.videoQuality = v;
+		}
+		else
+			service.videoQuality = defaultvidq;
     });
     page.loading = true;
     page.options.createAction('addToFavorites', "Add '" + decodeURIComponent(display_name) + "' to My Favorites", function() {
