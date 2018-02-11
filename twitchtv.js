@@ -110,7 +110,8 @@ new page.Route(plugin.id + ":start", function (page) {
     });
     page.loading = true;
     page.appendItem(plugin.id + ":favorites", "directory", {
-        title: "My Favorites"
+        title: "My Favorites",
+        icon: logo
     });
     var json = JSON.parse(http.request(API + '/streams/summary',header).toString());
     page.metadata.title += ' (Channels: ' + json.channels + ' Viewers: ' + json.viewers + ')';
@@ -354,7 +355,8 @@ function fill_fav(page) {
     for (var i in list) {
         var itemmd = JSON.parse(list[i]);
 	var item = page.appendItem(plugin.id + ':channel:' + itemmd.name + ':' + itemmd.display_name, "video", {
-            title: decodeURIComponent(itemmd.display_name)
+            title: decodeURIComponent(itemmd.display_name),
+            icon: decodeURIComponent(itemmd.icon)
 	});
         addOptionForRemovingFromMyFavorites(page, item, decodeURIComponent(itemmd.name), pos);
         pos++;
@@ -372,23 +374,12 @@ new page.Route(plugin.id + ":favorites", function(page) {
 new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_name) {
     setPageHeader(page, plugin.title + ' - ' + decodeURIComponent(display_name));
     page.options.createMultiOpt("videoQuality", "Video Quality", videoQualities, function(v) {
-	if (service.overridevidq == true)
-		{
-			service.videoQuality = v;
-		}
-		else
-			service.videoQuality = defaultvidq;
+	if (service.overridevidq == true) {
+            service.videoQuality = v;
+        } else
+            service.videoQuality = defaultvidq;
     });
     page.loading = true;
-    page.options.createAction('addToFavorites', "Add '" + decodeURIComponent(display_name) + "' to My Favorites", function() {
-        var entry = JSON.stringify({
-            name: name,
-            display_name: display_name
-        });
-        store.list = JSON.stringify([entry].concat(eval(store.list)));
-        popup.notify("'" + decodeURIComponent(display_name) + "' has been added to My Favorites.", 2);
-    });
-
     var tryToSearch = true, first = true;
     var json = JSON.parse(http.request(API + '/streams/' + name, header));
     if (json.stream) {
@@ -414,6 +405,15 @@ new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_n
         });
         page.entries++;
     }
+    page.options.createAction('addToFavorites', "Add '" + decodeURIComponent(display_name) + "' to My Favorites", function() {
+        var entry = JSON.stringify({
+            name: name,
+            display_name: display_name,
+            icon: json ? json.stream.channel.logo : void(0)
+        });
+        store.list = JSON.stringify([entry].concat(eval(store.list)));
+        popup.notify("'" + decodeURIComponent(display_name) + "' has been added to My Favorites.", 2);
+    });
     page.appendItem(plugin.id + ":past:" + name + ':' + display_name, "directory", {
         title: 'Past broadcasts'
     });
