@@ -98,36 +98,6 @@ var header = {
     }
 };
 
-new page.Route(plugin.id + ":teams", function (page) {
-    setPageHeader(page, plugin.title + ' - Teams');
-    var tryToSearch = true, first = true;
-    var url = API + '/teams?limit=' + itemsPerPage;
-    function loader() {
-        if (!tryToSearch) return false;
-        page.loading = true;
-        var json = JSON.parse(http.request(url, header));
-        page.loading = false;
-        for (var i in json.teams) {
-            page.appendItem(plugin.id + ":team:" + encodeURIComponent(json.teams[i].name), "video", {
-                title: new RichText(json.teams[i].display_name),
-                icon: json.teams[i].logo,
-                description: new RichText(coloredStr('Name: ', orange) + json.teams[i].name +
-                    coloredStr('\nCreated at: ', orange) + json.teams[i].created_at.replace(/[T|Z]/g, ' ') +
-                    coloredStr('\nUpdated at: ', orange) + json.teams[i].updated_at.replace(/[T|Z]/g, ' ') +
-                    coloredStr('\nInfo: ', orange) + trim(json.teams[i].info)
-                )
-            });
-            page.entries++;
-        }
-        if (json.teams.length == 0)
-            return tryToSearch = false;
-        url = json['_links'].next;
-        return true;
-    }
-    loader();
-    page.paginator = loader;
-});
-
 new page.Route(plugin.id + ":start", function (page) {
     setPageHeader(page, plugin.title + ' - Home');
     page.options.createMultiOpt("videoQuality", "Video Quality", videoQualities, function(v) {
@@ -140,10 +110,8 @@ new page.Route(plugin.id + ":start", function (page) {
     });
     page.loading = true;
     page.appendItem(plugin.id + ":favorites", "directory", {
-        title: "My Favorites"
-    });
-    page.appendItem(plugin.id + ":teams", "directory", {
-        title: "The List of Teams"
+        title: "My Favorites",
+        icon: logo
     });
     var json = JSON.parse(http.request(API + '/streams/summary',header).toString());
     page.metadata.title += ' (Channels: ' + json.channels + ' Viewers: ' + json.viewers + ')';
@@ -209,34 +177,10 @@ new page.Route(plugin.id + ":start", function (page) {
     page.loading = false;
 });
 
-new page.Route(plugin.id + ":team:(.*)", function(page, team) {
-    setPageHeader(page, plugin.title + ' - Channels of: ' + decodeURIComponent(team));
-    page.loading = true;
-    var json = JSON.parse(http.request('http://api.twitch.tv/api/team/' + team + '/live_channels.json',header).toString());
-    for (var i in json.channels) {
-        page.appendItem(plugin.id + ":channel:" + encodeURIComponent(json.channels[i].channel.name)  + ':' + encodeURIComponent(json.channels[i].channel.display_name), "video", {
-            title: new RichText(json.channels[i].channel.display_name + ' - ' + json.channels[i].channel.title + coloredStr(' (' + json.channels[i].channel.current_viewers + ')', orange)),
-            icon: json.channels[i].channel.image.size600,
-            description: new RichText(coloredStr('Viewing this channel: ', orange) + json.channels[i].channel.current_viewers +
-                coloredStr('\nMeta game: ', orange) + json.channels[i].channel.meta_game +
-                (json.channels[i].channel.total_views ? coloredStr('\nTotal views: ', orange) + json.channels[i].channel.total_views : '') +
-                (json.channels[i].channel.followers_count ? coloredStr('\nChannel followers: ', orange) + json.channels[i].channel.followers_count : '') +
-                (json.channels[i].channel.status ? coloredStr('\nChannel status: ', orange) + json.channels[i].channel.status : ''))
-        });
-    }
-
-    if (json.channels.length == 0)
-        page.appendPassiveItem('video', '', {
-            title: 'Currently there is no live channels of this team'
-        });
-    page.loading = false;
-});
-
 new page.Route(plugin.id + ":video:(.*):(.*)", function (page, id, name) {
     setPageHeader(page, plugin.title + ' - ' + decodeURIComponent(name));
     page.loading = true;
     json = JSON.parse(http.request('https://api.twitch.tv/api/vods/' + id.slice(1) + '/access_token', header));
-
     // Download playlist and split it into multilines
     var playlist = http.request('https://usher.ttvnw.net/vod/' + id.slice(1) +
         '.m3u8?sig=' + json.sig + '&token=' + json.token +
@@ -411,7 +355,8 @@ function fill_fav(page) {
     for (var i in list) {
         var itemmd = JSON.parse(list[i]);
 	var item = page.appendItem(plugin.id + ':channel:' + itemmd.name + ':' + itemmd.display_name, "video", {
-            title: decodeURIComponent(itemmd.display_name)
+            title: decodeURIComponent(itemmd.display_name),
+            icon: decodeURIComponent(itemmd.icon)
 	});
         addOptionForRemovingFromMyFavorites(page, item, decodeURIComponent(itemmd.name), pos);
         pos++;
@@ -429,29 +374,18 @@ new page.Route(plugin.id + ":favorites", function(page) {
 new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_name) {
     setPageHeader(page, plugin.title + ' - ' + decodeURIComponent(display_name));
     page.options.createMultiOpt("videoQuality", "Video Quality", videoQualities, function(v) {
-	if (service.overridevidq == true)
-		{
-			service.videoQuality = v;
-		}
-		else
-			service.videoQuality = defaultvidq;
+	if (service.overridevidq == true) {
+            service.videoQuality = v;
+        } else
+            service.videoQuality = defaultvidq;
     });
     page.loading = true;
-    page.options.createAction('addToFavorites', "Add '" + decodeURIComponent(display_name) + "' to My Favorites", function() {
-        var entry = JSON.stringify({
-            name: name,
-            display_name: display_name
-        });
-        store.list = JSON.stringify([entry].concat(eval(store.list)));
-        popup.notify("'" + decodeURIComponent(display_name) + "' has been added to My Favorites.", 2);
-    });
-
     var tryToSearch = true, first = true;
     var json = JSON.parse(http.request(API + '/streams/' + name, header));
     if (json.stream) {
         page.metadata.background = json.stream.channel.video_banner;
         page.metadata.backgroundAlpha = 0.3;
-        page.metadata.icon = json.stream.channel.logo;
+        page.metadata.logo = json.stream.channel.logo;
         page.appendItem("", "separator", {
             title: 'Stream'
         });
@@ -471,6 +405,15 @@ new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_n
         });
         page.entries++;
     }
+    page.options.createAction('addToFavorites', "Add '" + decodeURIComponent(display_name) + "' to My Favorites", function() {
+        var entry = JSON.stringify({
+            name: name,
+            display_name: display_name,
+            icon: json ? json.stream.channel.logo : void(0)
+        });
+        store.list = JSON.stringify([entry].concat(eval(store.list)));
+        popup.notify("'" + decodeURIComponent(display_name) + "' has been added to My Favorites.", 2);
+    });
     page.appendItem(plugin.id + ":past:" + name + ':' + display_name, "directory", {
         title: 'Past broadcasts'
     });
