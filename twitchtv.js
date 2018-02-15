@@ -83,6 +83,9 @@ settings.createBool('debug', 'Enable debug logging', false, function(v) {
 settings.createBool('overridevidq', 'Override default video quality setting', false, function(v) {
     service.overridevidq = v;
 });
+settings.createBool('disablebg', 'Disable channel background overlay', false, function(v) {
+    service.disablebg = v;
+});
 
 var store = require('movian/store').create('favorites');
 
@@ -383,7 +386,9 @@ new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_n
     var tryToSearch = true, first = true;
     var json = JSON.parse(http.request(API + '/streams/' + name, header));
     if (json.stream) {
-        page.metadata.background = json.stream.channel.video_banner;
+        if (service.disablebg == false) {
+            page.metadata.background = json.stream.channel.video_banner;
+            }
         page.metadata.backgroundAlpha = 0.3;
         page.metadata.logo = json.stream.channel.logo;
         page.appendItem("", "separator", {
