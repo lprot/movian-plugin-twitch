@@ -411,10 +411,11 @@ new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_n
         page.entries++;
     }
     page.options.createAction('addToFavorites', "Add '" + decodeURIComponent(display_name) + "' to My Favorites", function() {
+        var json = JSON.parse(http.request(API + '/channels/' + name, header));
         var entry = JSON.stringify({
             name: name,
             display_name: display_name,
-            icon: json ? json.stream.channel.logo : void(0)
+            icon: json ? json.logo : void(0)
         });
         store.list = JSON.stringify([entry].concat(eval(store.list)));
         popup.notify("'" + decodeURIComponent(display_name) + "' has been added to My Favorites.", 2);
