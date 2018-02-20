@@ -66,7 +66,7 @@ service.create(plugin.title, plugin.id + ":start", 'video', true, logo);
 settings.globalSettings(plugin.id, plugin.title, logo, plugin.synopsis);
 settings.createInfo("info", logo, plugin.synopsis);
 var videoQualities = [
-    ['0', 'chunked'], ['1', '1080p30'], ['2', '720p60'], ['3', '720p30', true], ['4', '480p60'], ['5', '480p30']
+    ['0', 'chunked', true], ['1', '1080p30'], ['2', '720p60'], ['3', '720p30'], ['4', '480p60'], ['5', '480p30']
 ];
 var defaultvidq;
 settings.createMultiOpt("videoQuality", "Video Quality", videoQualities, function(v) {
@@ -406,7 +406,8 @@ new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_n
                 coloredStr('\nChannel created at: ', orange) + json.stream.channel.created_at.replace(/[T|Z]/g, ' ') +
                 coloredStr('\nChannel updated at: ', orange) + json.stream.channel.updated_at.replace(/[T|Z]/g, ' ') +
                 (json.stream.channel.views ? coloredStr('\nChannel views: ', orange) + json.stream.channel.views : '') +
-                (json.stream.channel.followers ? coloredStr('\nChannel followers: ', orange) + json.stream.channel.followers : ''))
+                (json.stream.channel.followers ? coloredStr('\nChannel followers: ', orange) + json.stream.channel.followers : '') +
+                (json.stream.video_height ? coloredStr('\nNative resolution: ', orange) + json.stream.video_height : '') + "p" + (json.stream.average_fps ? Math.round(json.stream.average_fps) : ''))
         });
         page.entries++;
     }
