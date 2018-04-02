@@ -210,7 +210,7 @@ new page.Route(plugin.id + ":video:(.*):(.*)", function (page, id, name) {
 
     page.type = "video";
     page.source = "videoparams:" + JSON.stringify({
-        title: unescape(name),
+        title: decodeURIComponent(name),
         sources: [{
             url: 'hls:' + url
         }],
