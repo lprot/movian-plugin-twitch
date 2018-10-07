@@ -225,7 +225,7 @@ new page.Route(plugin.id + ":play:(.*)", function (page, name) {
     var json = JSON.parse(http.request('https://api.twitch.tv/api/channels/' + name + '/access_token', header));
 
     // Download playlist and split it into multilines
-    var playlist = http.request('http://usher.twitch.tv/api/channel/hls/' + name +
+    var playlist = http.request('https://usher.ttvnw.net/api/channel/hls/' + name +
         '.m3u8?sig=' + json.sig + '&token=' + json.token +
         '&allow_source=true',header).toString().split('\n');
 
