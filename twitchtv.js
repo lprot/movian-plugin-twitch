@@ -226,7 +226,7 @@ new page.Route(plugin.id + ":play:(.*)", function (page, name) {
 
     // Download playlist and split it into multilines
     var playlist = http.request('https://usher.ttvnw.net/api/channel/hls/' + name +
-        '.m3u8?sig=' + json.sig + '&token=' + json.token +
+        '.m3u8?sig=' + json.sig + '&token=' + encodeURIComponent(json.token) +
         '&allow_source=true',header).toString().split('\n');
 
     var url = null;
