@@ -1,7 +1,7 @@
 /**
  * TwitchTV plugin for Movian Media Center
  *
- *  Copyright (C) 2015-2018 lprot
+ *  Copyright (C) 2015-2019 lprot
  *  Based on the plugin of Fábio Ferreira (facanferff)
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -89,13 +89,22 @@ settings.createBool('disablebg', 'Disable channel background overlay', false, fu
 
 var store = require('movian/store').create('favorites');
 
-if (!store.list) 
+if (!store.list)
     store.list = "[]";
 
 var API = 'https://api.twitch.tv/kraken';
 var itemsPerPage = 50;
 var header = {
-    debug: service.debug, 
+    debug: service.debug,
+    headers: {
+		'Accept': 'application/vnd.twitchtv.v5+json',
+        'Client-ID':'awyezs6zu2vcnaekftdjy77evgk9jn'
+    }
+};
+
+var API_NEW = 'https://api.twitch.tv/helix';
+var header_new = {
+    debug: service.debug,
     headers: {
         'Client-ID':'awyezs6zu2vcnaekftdjy77evgk9jn'
     }
@@ -125,7 +134,7 @@ new page.Route(plugin.id + ":start", function (page) {
         title: 'Featured streams (' + json.featured.length + ')'
     });
     for (var i in json.featured) {
-        page.appendItem(plugin.id + ':channel:' + encodeURIComponent(json.featured[i].stream.channel.name) + ':' + encodeURIComponent(json.featured[i].stream.channel.display_name), "video", {
+        page.appendItem(plugin.id + ':channel:' + encodeURIComponent(json.featured[i].stream.channel._id) + ':' + encodeURIComponent(json.featured[i].stream.channel.display_name) + ':' + encodeURIComponent(json.featured[i].stream.channel.name), "video", {
             title: new RichText((json.featured[i].stream.game ? json.featured[i].stream.game + ' - ' : '') + json.featured[i].stream.channel.display_name + coloredStr(' (' + json.featured[i].stream.viewers + ')', orange)),
             icon: json.featured[i].image,
             backdrops: [{url: json.featured[i].stream.preview.large}],
@@ -145,39 +154,66 @@ new page.Route(plugin.id + ":start", function (page) {
 
     // Top Games
     var tryToSearch = true, first = true;
-    var url = API + '/games/top?limit=' + itemsPerPage;
+
+	/*
+	// Using the new api
+    var url = API_NEW + '/games/top';
+	var cursor = "";
 
     function loader() {
         if (!tryToSearch) return false;
         page.loading = true;
-        var json = JSON.parse(http.request(url,header));
+        var json = JSON.parse(http.request(url + (cursor ? "?after="+cursor : ""), header_new));
         if (first) {
             page.appendItem("", "separator", {
-                title: 'Top Games (' + json._total + ')'
+                title: 'Top Games'
             });
             first = false;
         }
-        for (var i in json.top) {
-            if (!json.top[i].game.name) // db errors?
+		cursor = json.pagination.cursor;
+
+        for (var i in json.data) {
+            if (!json.data[i].name) // db errors?
                 continue;
-            page.appendItem(plugin.id + ":game:" + encodeURIComponent(json.top[i].game.name), "video", {
-                title: new RichText(json.top[i].game.name + coloredStr(' (' + json.top[i].viewers + ')', orange)),
-                icon: json.top[i].game.box.large,
-                backdrops: [{url: json.top[i].game.logo.large}],
-                description: new RichText(coloredStr('Viewers: ', orange) + json.top[i].viewers +
-                    coloredStr('\nChannels: ', orange) + json.top[i].channels)
+            page.appendItem(plugin.id + ":game:" + encodeURIComponent(json.data[i].name), "video", {
+                title: new RichText(json.data[i].name),
+                icon: json.data[i].box_art_url.replace("{width}x{height}", "260x300"),
             });
             page.entries++;
         }
         page.loading = false;
-        if (json.top.length == 0)
+        if (json.data.length == 0)
             return tryToSearch = false;
-        url = json['_links'].next;
-        return true;
+		return true;
     }
+
     loader();
     page.paginator = loader;
     page.loading = false;
+
+	*/
+
+	// Using api v5
+	var url = API + '/games/top?limit=100';
+
+	page.loading = true;
+	var json = JSON.parse(http.request(url, header));
+	page.appendItem("", "separator", {title: 'Top 100 Games'});
+
+	for (var i in json.top) {
+		if (!json.top[i].game.name) // db errors?
+			continue;
+		page.appendItem(plugin.id + ":game:" + encodeURIComponent(json.top[i].game.name), "video", {
+			title: new RichText(json.top[i].game.name + coloredStr(' (' + json.top[i].viewers + ')', orange)),
+			icon: json.top[i].game.box.large,
+			backdrops: [{url: json.top[i].game.logo.large}],
+			description: new RichText(coloredStr('Viewers: ', orange) + json.top[i].viewers +
+				coloredStr('\nChannels: ', orange) + json.top[i].channels)
+		});
+		page.entries++;
+	}
+	page.loading = false;
+
 });
 
 new page.Route(plugin.id + ":video:(.*):(.*)", function (page, id, name) {
@@ -186,8 +222,8 @@ new page.Route(plugin.id + ":video:(.*):(.*)", function (page, id, name) {
     json = JSON.parse(http.request('https://api.twitch.tv/api/vods/' + id.slice(1) + '/access_token', header));
     // Download playlist and split it into multilines
     var playlist = http.request('https://usher.ttvnw.net/vod/' + id.slice(1) +
-        '.m3u8?sig=' + json.sig + '&token=' + json.token +
-        '&allow_source=true',header).toString().split('\n');
+        '?player=twitchweb&sig=' + json.sig + '&token=' + encodeURIComponent(json.token) +
+        '&allow_source=true&p=8',header).toString().split('\n');
 
     var url = 0;
 
@@ -226,8 +262,8 @@ new page.Route(plugin.id + ":play:(.*)", function (page, name) {
 
     // Download playlist and split it into multilines
     var playlist = http.request('https://usher.ttvnw.net/api/channel/hls/' + name +
-        '.m3u8?sig=' + json.sig + '&token=' + encodeURIComponent(json.token) +
-        '&allow_source=true',header).toString().split('\n');
+        '?player=twitchweb&sig=' + json.sig + '&token=' + encodeURIComponent(json.token) +
+        '&allow_source=true&p=71',header).toString().split('\n');
 
     var url = null;
 
@@ -269,7 +305,8 @@ new page.Route(plugin.id + ":past:(.*):(.*)", function (page, name, display_name
     });
     page.loading = true;
 
-    var url = API + '/channels/' + name + '/videos?broadcast_type=archive';
+	var offset = 0;
+    var url = API + '/channels/' + name + '/videos?broadcast_type=archive&limit='+itemsPerPage+'&offset='+offset;
     var tryToSearch = true;
 
     function loader() {
@@ -279,7 +316,7 @@ new page.Route(plugin.id + ":past:(.*):(.*)", function (page, name, display_name
         for (var i in json.videos) {
             page.appendItem(plugin.id + ":video:" + json.videos[i]._id + ':' + encodeURIComponent(json.videos[i].title), "video", {
                 title: new RichText(json.videos[i].title + coloredStr(' (' + json.videos[i].views + ')', orange)),
-                icon: json.videos[i].preview,
+                icon: json.videos[i].preview.medium,
                 duration: json.videos[i].length,
                 description: new RichText(coloredStr('Views: ', orange) + json.videos[i].views +
                     (json.videos[i].game ? coloredStr('\nGame: ', orange) + json.videos[i].game : '') +
@@ -291,7 +328,8 @@ new page.Route(plugin.id + ":past:(.*):(.*)", function (page, name, display_name
         page.loading = false;
         if (json.videos.length == 0)
             return tryToSearch = false;
-        url = json['_links'].next;
+        // url = json['_links'].next;
+		offset+=itemsPerPage;
         return true;
     }
     loader();
@@ -302,7 +340,8 @@ new page.Route(plugin.id + ":user:(.*)", function (page, query) {
     setPageHeader(page, query);
     page.loading = true;
     var tryToSearch = true, first = true;
-    var url = API + '/search/channels?q=' + encodeURIComponent(query) + '&limit=' + itemsPerPage;
+	var offset = 0;
+    var url = API + '/search/channels?query=' + encodeURIComponent(query) + '&limit=' + itemsPerPage+'&offset='+offset;
     function loader() {
         if (!tryToSearch) return false;
         page.loading = true;
@@ -312,7 +351,7 @@ new page.Route(plugin.id + ":user:(.*)", function (page, query) {
             first = false;
         }
         for (var i in json.channels) {
-            page.appendItem(plugin.id + ':channel:' + encodeURIComponent(json.channels[i].name) + ':' + encodeURIComponent(json.channels[i].display_name), 'video', {
+            page.appendItem(plugin.id + ':channel:' + encodeURIComponent(json.channels[i]._id) + ':' + encodeURIComponent(json.channels[i].display_name) + ':' + encodeURIComponent(json.channels[i].name), 'video', {
                 title: json.channels[i].display_name + (json.channels[i].game ? ' - ' + json.channels[i].game : ''),
                 icon: json.channels[i].logo,
                 description: new RichText((json.channels[i].views ? coloredStr('\nChannel views: ', orange) + json.channels[i].views : '') +
@@ -328,7 +367,9 @@ new page.Route(plugin.id + ":user:(.*)", function (page, query) {
         page.loading = false;
         if (json.channels.length == 0)
             return tryToSearch = false;
-        url = json['_links'].next;
+        // url = json['_links'].next;
+		offset += itemsPerPage;
+
         return true;
     }
     loader();
@@ -357,11 +398,11 @@ function fill_fav(page) {
     var pos = 0;
     for (var i in list) {
         var itemmd = JSON.parse(list[i]);
-	var item = page.appendItem(plugin.id + ':channel:' + itemmd.name + ':' + itemmd.display_name, "video", {
+	var item = page.appendItem(plugin.id + ':channel:' + itemmd.name + ':' + itemmd.display_name + ':' + itemmd.name, "video", {
             title: decodeURIComponent(itemmd.display_name),
             icon: decodeURIComponent(itemmd.icon)
 	});
-        addOptionForRemovingFromMyFavorites(page, item, decodeURIComponent(itemmd.name), pos);
+        addOptionForRemovingFromMyFavorites(page, item, decodeURIComponent(itemmd.display_name), pos);
         pos++;
     }
     page.loading = false;
@@ -374,7 +415,7 @@ new page.Route(plugin.id + ":favorites", function(page) {
 
 });
 
-new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_name) {
+new page.Route(plugin.id + ":channel:(.*):(.*):(.*)", function (page, name, display_name, name2) {
     setPageHeader(page, plugin.title + ' - ' + decodeURIComponent(display_name));
     page.options.createMultiOpt("videoQuality", "Video Quality", videoQualities, function(v) {
 	if (service.overridevidq == true) {
@@ -413,6 +454,7 @@ new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_n
     }
     page.options.createAction('addToFavorites', "Add '" + decodeURIComponent(display_name) + "' to My Favorites", function() {
         var json = JSON.parse(http.request(API + '/channels/' + name, header));
+		console.log(json);
         var entry = JSON.stringify({
             name: name,
             display_name: display_name,
@@ -425,46 +467,58 @@ new page.Route(plugin.id + ":channel:(.*):(.*)", function (page, name, display_n
         title: 'Past broadcasts'
     });
 
-    var url = API + '/channels/' + name + '/videos';
-    function loader() {
-        if (!tryToSearch) return false;
-        page.loading = true;
-        var json = JSON.parse(http.request(url,header));
-        if (json.videos.length && first) {
-            page.appendItem("", "separator", {
-                title: 'Videos'
-            });
-            first = false;
-        }
-        for (var i in json.videos) {
-            page.appendItem(plugin.id + ":video:" + json.videos[i]._id + ':' + encodeURIComponent(json.videos[i].title), "video", {
-                title: new RichText(json.videos[i].title + coloredStr(' (' + json.videos[i].views + ')', orange)),
-                icon: json.videos[i].preview,
-                duration: json.videos[i].length,
-                description: new RichText(coloredStr('Views: ', orange) + json.videos[i].views +
-                    (json.videos[i].game ? coloredStr('\nGame: ', orange) + json.videos[i].game : '') +
-                    (json.videos[i].recorded_at ? coloredStr('\nRecorded at: ', orange) + json.videos[i].recorded_at.replace(/[T|Z]/g, ' ') : '') +
-                    (json.videos[i].description ? coloredStr('\nDescription: ', orange) + json.videos[i].description : ''))
-                });
-            page.entries++;
-        }
-        page.loading = false;
-        if (json.videos.length == 0)
-            return tryToSearch = false;
-        url = json['_links'].next;
-        return true;
-    }
-    loader();
-    page.paginator = loader;
-    page.loading = false;
-    if (!page.entries)
-        page.appendPassiveItem('video', '', {
-            title: 'Currently this channel is empty :('
-        });
+	page.loading = true;
+	var url = API_NEW + '/videos?user_id=' + name + '&type=highlight&first=25';
+	var json = JSON.parse(http.request(url, header));
+	if(json.data && json.data.length)
+	{
+		page.appendItem("", "separator", {title: 'Highlights'});
+
+		for (var i in json.data)
+		{
+			page.appendItem(plugin.id + ":video:v" + json.data[i].id + ':' + encodeURIComponent(json.data[i].title), "video",
+			{
+				title: new RichText(json.data[i].title + coloredStr(' (' + json.data[i].view_count + ')', orange)),
+				icon: json.data[i].thumbnail_url.replace("%{width}x%{height}", "320x180"),
+				duration: json. data[i].duration,
+				description: new RichText(coloredStr('Views: ', orange) + json.data[i].view_count +
+				//    (json.videos[i].game ? coloredStr('\nGame: ', orange) + json.videos[i].game : '') +
+					(json.data[i].created_at ? coloredStr('\nCreated: ', orange) + json.data[i].created_at.replace(/[T|Z]/g, ' ') : '') +
+					(json.data[i].description ? coloredStr('\nDescription: ', orange) + json.data[i].description : '')
+					)
+			});
+			page.entries++;
+		}
+	}
+
+	var url = API_NEW + '/videos?user_id=' + name + '&type=all&sort=views&first=25';
+	var json = JSON.parse(http.request(url, header));
+	if(json.data && json.data.length)
+	{
+		page.appendItem("", "separator", {title: 'Top'});
+
+		for (var i in json.data)
+		{
+			page.appendItem(plugin.id + ":video:v" + json.data[i].id + ':' + encodeURIComponent(json.data[i].title), "video",
+			{
+				title: new RichText(json.data[i].title + coloredStr(' (' + json.data[i].view_count + ')', orange)),
+				icon: json.data[i].thumbnail_url.replace("%{width}x%{height}", "320x180"),
+				duration: json. data[i].duration,
+				description: new RichText(coloredStr('Views: ', orange) + json.data[i].view_count +
+				//    (json.videos[i].game ? coloredStr('\nGame: ', orange) + json.videos[i].game : '') +
+					(json.data[i].created_at ? coloredStr('\nCreated: ', orange) + json.data[i].created_at.replace(/[T|Z]/g, ' ') : '') +
+					(json.data[i].description ? coloredStr('\nDescription: ', orange) + json.data[i].description : '')
+					)
+			});
+			page.entries++;
+		}
+	}
+
+	page.loading = false;
 });
 
 function appendChannelItem(page, json) {
-    page.appendItem(plugin.id + ':channel:' + encodeURIComponent(json.channel.name) + ':' + encodeURIComponent(json.channel.display_name), 'video', {
+    page.appendItem(plugin.id + ':channel:' + encodeURIComponent(json.channel._id) + ':' + encodeURIComponent(json.channel.display_name) + ':' + encodeURIComponent(json.channel.name), 'video', {
         title: new RichText(json.channel.display_name + coloredStr(' (' + json.viewers + ')', orange)),
         icon: json.channel.logo,
         backdrops: [{url: json.preview.large}],
@@ -485,7 +539,8 @@ new page.Route(plugin.id + ":game:(.*)", function (page, name) {
     setPageHeader(page, 'Channels casting: ' + decodeURIComponent(name));
     page.loading = true;
     var tryToSearch = true, first = true;
-    var url = API + '/streams?game=' + name + '&limit=' + itemsPerPage ;
+	var offset = 0;
+    var url = API + '/streams?game=' + name + '&limit=' + itemsPerPage +'&offset='+offset; ;
     function loader() {
         if (!tryToSearch) return false;
         page.loading = true;
@@ -494,12 +549,13 @@ new page.Route(plugin.id + ":game:(.*)", function (page, name) {
             page.metadata.title +=  ' (' + json._total + ')';
             first = false;
         }
-        for (var i in json.streams) 
+        for (var i in json.streams)
             appendChannelItem(page, json.streams[i]);
         page.loading = false;
         if (json.streams.length == 0)
             return tryToSearch = false;
-        url = json['_links'].next;
+        // url = json['_links'].next;
+		offset += itemsPerPage;
         return true;
     }
     loader();
@@ -507,73 +563,36 @@ new page.Route(plugin.id + ":game:(.*)", function (page, name) {
     page.loading = false;
 });
 
+/*
 page.Searcher(plugin.title + ' - Channels', logo, function (page, query) {
-    setPageHeader(page, plugin.title + ' - Channels');
-    page.loading = true;
-    var tryToSearch = true, first = true;
-    var url = API + '/search/channels?q=' + encodeURIComponent(query) + '&limit=' + itemsPerPage;
-    function loader() {
-        if (!tryToSearch) return false;
-        page.loading = true;
-        var json = JSON.parse(http.request(url,header));
-        if (first && page.metadata) {
-            page.metadata.title +=  ' (' + json._total + ')';
-            first = false;
-        }
-        for (var i in json.channels) {
-            page.appendItem(plugin.id + ':channel:' + encodeURIComponent(json.channels[i].name) + ':' + encodeURIComponent(json.channels[i].display_name), 'video', {
-                title: json.channels[i].display_name + (json.channels[i].game ? ' - ' + json.channels[i].game : ''),
-                icon: json.channels[i].logo,
-                description: new RichText((json.channels[i].views ? coloredStr('\nChannel views: ', orange) + json.channels[i].views : '') +
-                    coloredStr('\nCreated at: ', orange) + json.channels[i].created_at.replace(/[T|Z]/g, ' ') +
-                    coloredStr('\nUpdated at: ', orange) + json.channels[i].updated_at.replace(/[T|Z]/g, ' ') +
-                    (json.channels[i].mature ? coloredStr('\nMature: ', orange) + json.channels[i].mature : '') +
-                    (json.channels[i].language ? coloredStr('\nLanguage: ', orange) + json.channels[i].language : '') +
-                    (json.channels[i].followers ? coloredStr('\nFollowers: ', orange) + json.channels[i].followers : '') +
-                    (json.channels[i].status ? coloredStr('\nStatus: ', orange) + json.channels[i].status : ''))
-            });
-            page.entries++;
-        }
-        page.loading = false;
-        if (json.channels.length == 0)
-            return tryToSearch = false;
-        url = json['_links'].next;
-        return true;
-    }
-    loader();
-    page.paginator = loader;
-    page.loading = false;
+    var url = API + '/search/channels?query=' + encodeURIComponent(query) + '&limit=' + itemsPerPage;
+	var json = JSON.parse(http.request(url, header));
+	for (var i in json.channels) {
+		page.appendItem(plugin.id + ':channel:' + encodeURIComponent(json.channels[i]._id) + ':' + encodeURIComponent(json.channels[i].display_name), 'video', {
+			title: json.channels[i].display_name + (json.channels[i].game ? ' - ' + json.channels[i].game : ''),
+			icon: json.channels[i].logo,
+			description: new RichText((json.channels[i].views ? coloredStr('\nChannel views: ', orange) + json.channels[i].views : '') +
+				coloredStr('\nCreated at: ', orange) + json.channels[i].created_at.replace(/[T|Z]/g, ' ') +
+				coloredStr('\nUpdated at: ', orange) + json.channels[i].updated_at.replace(/[T|Z]/g, ' ') +
+				(json.channels[i].mature ? coloredStr('\nMature: ', orange) + json.channels[i].mature : '') +
+				(json.channels[i].language ? coloredStr('\nLanguage: ', orange) + json.channels[i].language : '') +
+				(json.channels[i].followers ? coloredStr('\nFollowers: ', orange) + json.channels[i].followers : '') +
+				(json.channels[i].status ? coloredStr('\nStatus: ', orange) + json.channels[i].status : ''))
+		});
+		page.entries++;
+	}
 });
+
 
 page.Searcher(plugin.title + ' - Streams', logo, function (page, query) {
-    setPageHeader(page, plugin.title + ' - Streams');
-    page.loading = true;
-    var tryToSearch = true, first = true;
-    var url = API + '/search/streams?limit=' + itemsPerPage + '&q=' + encodeURIComponent(query);
-    function loader() {
-        if (!tryToSearch) return false;
-        page.loading = true;
-        var json = JSON.parse(http.request(url,header));
-        if (first && page.metadata) {
-            page.metadata.title +=  ' (' + json._total + ')';
-            first = false;
-        }
-        for (var i in json.streams) 
-            appendChannelItem(page, json.streams[i]);
-        page.loading = false;
-        if (json.streams.length == 0)
-            return tryToSearch = false;
-        url = json['_links'].next;
-        return true;
-    }
-    loader();
-    page.paginator = loader;
-    page.loading = false;
+    var url = API + '/search/streams?limit=' + itemsPerPage + '&hls=true&q=' + encodeURIComponent(query);
+	var json = JSON.parse(http.request(url, header));
+	for (var i in json.streams)
+		appendChannelItem(page, json.streams[i]);
 });
+*/
 
 page.Searcher(plugin.title + ' - Games', logo, function (page, query) {
-    setPageHeader(page, plugin.title + ' - Games');
-    page.loading = true;
     var json = JSON.parse(http.request(API + '/search/games?type=suggest&query=' + encodeURIComponent(query) + '&live=true',header));
     for (var i in json.games) {
         page.appendItem(plugin.id + ":game:" + encodeURIComponent(json.games[i].name), "video", {
@@ -583,5 +602,4 @@ page.Searcher(plugin.title + ' - Games', logo, function (page, query) {
         });
         page.entries++;
     }
-    page.loading = false;
 });
