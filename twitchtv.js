@@ -98,7 +98,7 @@ var header = {
     debug: service.debug,
     headers: {
 		'Accept': 'application/vnd.twitchtv.v5+json',
-        'Client-ID':'kimne78kx3ncx6brgo4mv6wki5h1ko'
+        'Client-ID':'awyezs6zu2vcnaekftdjy77evgk9jn'
     }
 };
 
@@ -106,7 +106,7 @@ var API_NEW = 'https://api.twitch.tv/helix';
 var header_new = {
     debug: service.debug,
     headers: {
-        'Client-ID':'kimne78kx3ncx6brgo4mv6wki5h1ko'
+        'Client-ID':'awyezs6zu2vcnaekftdjy77evgk9jn'
     }
 };
 
