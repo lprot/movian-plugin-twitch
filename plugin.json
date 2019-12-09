@@ -4,7 +4,7 @@
 	"homepage": "https://github.com/lprot/movian-plugin-twitch",
 	"title": "TwitchTV",
 	"synopsis": "Twitch.TV: Game streaming.",
-	"version": "2.0.28",
+	"version": "2.0.29",
 	"file": "twitchtv.js",
 	"showtimeVersion": "4.8",
 	"type": "ecmascript",
