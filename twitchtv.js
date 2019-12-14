@@ -98,6 +98,13 @@ var header = {
     debug: service.debug,
     headers: {
 		'Accept': 'application/vnd.twitchtv.v5+json',
+        'Client-ID':'awyezs6zu2vcnaekftdjy77evgk9jn'
+    }
+};
+var header_twitch = {
+    debug: service.debug,
+    headers: {
+		'Accept': 'application/vnd.twitchtv.v5+json',
         'Client-ID':'kimne78kx3ncx6brgo4mv6wki5h1ko'
     }
 };
@@ -219,7 +226,7 @@ new page.Route(plugin.id + ":start", function (page) {
 new page.Route(plugin.id + ":video:(.*):(.*)", function (page, id, name) {
     setPageHeader(page, plugin.title + ' - ' + decodeURIComponent(name));
     page.loading = true;
-    json = JSON.parse(http.request('https://api.twitch.tv/api/vods/' + id.slice(1) + '/access_token', header));
+    json = JSON.parse(http.request('https://api.twitch.tv/api/vods/' + id.slice(1) + '/access_token', header_twitch));
     // Download playlist and split it into multilines
     var playlist = http.request('https://usher.ttvnw.net/vod/' + id.slice(1) +
         '?player=twitchweb&sig=' + json.sig + '&token=' + encodeURIComponent(json.token) +
@@ -258,11 +265,11 @@ new page.Route(plugin.id + ":video:(.*):(.*)", function (page, id, name) {
 new page.Route(plugin.id + ":play:(.*)", function (page, name) {
     // Get sig and token
     page.loading = true;
-    var json = JSON.parse(http.request('https://api.twitch.tv/api/channels/' + name + '/access_token', header));
+    var json = JSON.parse(http.request('https://api.twitch.tv/api/channels/' + name + '/access_token', header_twitch));
 
     // Download playlist and split it into multilines
     var playlist = http.request('https://usher.ttvnw.net/api/channel/hls/' + name +
-        '?player=twitchweb&sig=' + json.sig + '&token=' + encodeURIComponent(json.token) +
+        '.m3u8?player=twitchweb&sig=' + json.sig + '&token=' + encodeURIComponent(json.token) +
         '&allow_source=true&p=71',header).toString().split('\n');
 
     var url = null;
